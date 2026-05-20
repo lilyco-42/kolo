@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__query-docs",
+      "WebSearch",
+      "Bash(cargo build *)",
+      "Bash(cargo check *)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(./target/release/atac.exe --lang zh)",
+      "Bash(./target/release/atac.exe --help)",
+      "Bash(findstr lang *)",
+      "Bash(taskkill /f /im atac.exe)",
+      "Bash(./target/debug/atac.exe --lang zh +help)",
+      "Bash(./target/debug/atac.exe --lang zh --help)",
+      "Bash(gh release *)",
+      "Bash(cargo binstall *)",
+      "Bash(git push *)",
+      "Bash(git tag *)"
+    ]
+  }
+}
