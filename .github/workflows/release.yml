@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*" # 推送 v 开头的标签时触发
+
+jobs:
+  # 定义构建矩阵，覆盖三大桌面平台
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: kolo # Linux 无需扩展名
+            ext: ""
+            apt_packages: libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libatk1.0-dev libcairo2-dev
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary: kolo
+            ext: ""
+            # macOS 一般无需额外系统依赖
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: kolo
+            ext: ".exe"
+            # Windows 通常已有所需库
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+
+      - name: Install system dependencies (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.apt_packages }}
+
+      - name: Cache cargo registry & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }}
+        env:
+          RUSTFLAGS: "--deny warnings"
+
+      - name: Prepare binary for upload
+        run: |
+          mv target/${{ matrix.target }}/release/${{ matrix.binary }}${{ matrix.ext }} \
+             ${{ matrix.binary }}-${{ runner.os }}-x86_64${{ matrix.ext }}
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary }}-${{ runner.os }}
+          path: ${{ matrix.binary }}-${{ runner.os }}-x86_64${{ matrix.ext }}
+
+  # 单独一个 job，等所有平台构建完成后再发布
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
