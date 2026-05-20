@@ -109,7 +109,7 @@ fn show_json_value(ui: &mut egui::Ui, value: &mut serde_json_lenient::Value, dep
             let response = ui.text_edit_singleline(&mut text);
             if response.changed() {
                 // 使用 FromStr trait 解析数字
-                if let Ok(new_n) = text.parse::<serde_json::Number>() {
+                if let Ok(new_n) = text.parse::<serde_json_lenient::Number>() {
                     *n = new_n;
                 }
             }
