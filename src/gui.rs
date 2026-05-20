@@ -93,7 +93,7 @@ impl eframe::App for App {
 }
 
 // ---------- 递归显示 JSON ----------
-fn show_json_value(ui: &mut egui::Ui, value: &mut serde_json_lenient::Value, depth: usize) {
+fn show_json_value(ui: &mut egui::Ui, value: &mut serde_json_lenient::Value, _depth: usize) {
     match value {
         serde_json_lenient::Value::Null => {
             ui.label("null");
@@ -122,7 +122,7 @@ fn show_json_value(ui: &mut egui::Ui, value: &mut serde_json_lenient::Value, dep
                 for (i, val) in arr.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
                         ui.label(format!("[{}]", i));
-                        show_json_value(ui, val, depth + 1);
+                        show_json_value(ui, val, _depth + 1);
                     });
                 }
             });
@@ -133,7 +133,7 @@ fn show_json_value(ui: &mut egui::Ui, value: &mut serde_json_lenient::Value, dep
             for key in keys {
                 if let Some(child) = obj.get_mut(&key) {
                     ui.collapsing(key, |ui| {
-                        show_json_value(ui, child, depth + 1);
+                        show_json_value(ui, child, _depth + 1);
                     });
                 }
             }
