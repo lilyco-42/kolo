@@ -81,7 +81,7 @@ jobs:
           cargo install cargo-wix --version 0.3.9
           $env:CARGO_TARGET_DIR = "target"
           $env:CARGO_BUILD_TARGET = "${{ matrix.target }}"
-          cargo wix --no-build -o "kolo-${{ matrix.target }}.msi"
+          cargo wix --no-build --nocapture -o "kolo-${{ matrix.target }}.msi"
           $hash = (Get-FileHash "kolo-${{ matrix.target }}.msi" -Algorithm SHA256).Hash.ToLower()
           "$hash  kolo-${{ matrix.target }}.msi" | Out-File -Encoding ASCII "kolo-${{ matrix.target }}.msi.sha256"
         shell: pwsh
