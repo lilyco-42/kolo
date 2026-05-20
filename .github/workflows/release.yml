@@ -77,11 +77,15 @@ jobs:
       - name: Build MSI installer
         if: matrix.archive == 'zip'
         run: |
-          choco install wixtoolset -y --version=3.14.1
+          choco install wixtoolset -y --version=3.14.1 --allow-downgrade
+          $wixBin = "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin"
+          if (-not (Test-Path "$wixBin\candle.exe")) {
+            $wixBin = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin"
+          }
           $version = "${{ github.ref_name }}" -replace '^v', ''
           $binary = "target/${{ matrix.target }}/release/kolo.exe"
-          & "C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe" -dVersion=$version -dBinary=$binary wix\main.wxs -out wix\
-          & "C:\Program Files (x86)\WiX Toolset v3.14\bin\light.exe" wix\main.wixobj -out "kolo-${{ matrix.target }}.msi"
+          & "$wixBin\candle.exe" -d"Version=$version" -d"Binary=$binary" wix\main.wxs -out wix\
+          & "$wixBin\light.exe" wix\main.wixobj -out "kolo-${{ matrix.target }}.msi"
           $hash = (Get-FileHash "kolo-${{ matrix.target }}.msi" -Algorithm SHA256).Hash.ToLower()
           "$hash  kolo-${{ matrix.target }}.msi" | Out-File -Encoding ASCII "kolo-${{ matrix.target }}.msi.sha256"
         shell: pwsh
