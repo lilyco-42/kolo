@@ -2,6 +2,11 @@ use anyhow::Result;
 use eframe::egui;
 use std::path::PathBuf;
 
+/// 加载中文字体：使用内嵌 SimHei（黑体），确保跨平台中文显示
+fn load_cjk_font() -> Vec<u8> {
+    include_bytes!("../assets/simhei.ttf").to_vec()
+}
+
 pub fn run(config_path: PathBuf, config: serde_json_lenient::Value) -> Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([900.0, 700.0]),
@@ -15,25 +20,23 @@ pub fn run(config_path: PathBuf, config: serde_json_lenient::Value) -> Result<()
             let ctx = &cc.egui_ctx;
             let mut fonts = egui::FontDefinitions::default();
 
-            // 加载字体（请确保路径正确）
+            let font_bytes = load_cjk_font();
             fonts.font_data.insert(
-                "HarmonyOS_Sans".to_owned(),
-                std::sync::Arc::new(egui::FontData::from_static(include_bytes!(
-                    "../assets/HarmonyOS_Sans_Medium.ttf"
-                ))),
+                "CJK".to_owned(),
+                std::sync::Arc::new(egui::FontData::from_owned(font_bytes)),
             );
 
             fonts
                 .families
                 .get_mut(&egui::FontFamily::Proportional)
                 .unwrap()
-                .insert(0, "HarmonyOS_Sans".to_owned());
+                .insert(0, "CJK".to_owned());
 
             fonts
                 .families
                 .get_mut(&egui::FontFamily::Monospace)
                 .unwrap()
-                .push("HarmonyOS_Sans".to_owned());
+                .push("CJK".to_owned());
 
             ctx.set_fonts(fonts);
 
@@ -69,9 +72,7 @@ impl App {
 }
 
 impl eframe::App for App {
-    // 新版本 eframe 要求实现 ui 方法，而不是 update
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        // 顶部菜单栏
         egui::Panel::top("menu").show_inside(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 if ui.button("保存").clicked() {
@@ -83,7 +84,6 @@ impl eframe::App for App {
             });
         });
 
-        // 中央区域
         egui::CentralPanel::default().show_inside(ui, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 show_json_value(ui, &mut self.config, 0);
