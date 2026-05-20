@@ -21,7 +21,7 @@
         <Directory Id="TARGETDIR" Name="SourceDir">
             <Directory Id="ProgramFiles64Folder">
                 <Directory Id="APPLICATIONFOLDER" Name="kolo">
-                    <Component Id="KoloExe" Guid="*">
+                    <Component Id="KoloExe" Guid="*" Win64="yes">
                         <File
                             Id="kolo.exe"
                             Name="kolo.exe"
