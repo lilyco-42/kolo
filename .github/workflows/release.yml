@@ -3,90 +3,98 @@ name: Release
 on:
   push:
     tags:
-      - "v*" # 推送 v 开头的标签时触发
+      - "v*"
 
 jobs:
-  # 定义构建矩阵，覆盖三大桌面平台
   build:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary: kolo # Linux 无需扩展名
-            ext: ""
+            archive: tar.gz
             apt_packages: libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libatk1.0-dev libcairo2-dev
           - os: macos-latest
             target: x86_64-apple-darwin
-            binary: kolo
-            ext: ""
-            # macOS 一般无需额外系统依赖
+            archive: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary: kolo
-            ext: ".exe"
-            # Windows 通常已有所需库
+            archive: zip
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
 
-      - name: Install system dependencies (Linux only)
+      - name: Install system deps (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y ${{ matrix.apt_packages }}
 
-      - name: Cache cargo registry & build
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build release
+      - name: Build
         run: cargo build --release --target ${{ matrix.target }}
         env:
           RUSTFLAGS: "--deny warnings"
 
-      - name: Prepare binary for upload
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
         run: |
-          mv target/${{ matrix.target }}/release/${{ matrix.binary }}${{ matrix.ext }} \
-             ${{ matrix.binary }}-${{ runner.os }}-x86_64${{ matrix.ext }}
-        shell: bash
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../kolo-${{ matrix.target }}.tar.gz kolo
+          cd ../../..
+          sha256sum kolo-${{ matrix.target }}.tar.gz > kolo-${{ matrix.target }}.tar.gz.sha256
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          $bin = "target/${{ matrix.target }}/release/kolo.exe"
+          $archive = "kolo-${{ matrix.target }}.zip"
+          Compress-Archive -Path $bin -DestinationPath $archive
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
+          "$hash  $archive" | Out-File -Encoding ASCII "$archive.sha256"
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.binary }}-${{ runner.os }}
-          path: ${{ matrix.binary }}-${{ runner.os }}-x86_64${{ matrix.ext }}
+          name: kolo-${{ matrix.target }}
+          path: |
+            kolo-${{ matrix.target }}.${{ matrix.archive }}
+            kolo-${{ matrix.target }}.${{ matrix.archive }}.sha256
 
-  # 单独一个 job，等所有平台构建完成后再发布
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
+      - name: Display artifacts
+        run: ls -la artifacts
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: artifacts/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
