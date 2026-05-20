@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <?include $(sys.CURRENTDIR)\Cargo.toml?>
+
+    <Product
+        Id="*"
+        Name="kolo"
+        Language="1033"
+        Version="$(var.CargoPackageVersion)"
+        Manufacturer="lilyco-42"
+        UpgradeCode="2E2C7B8A-1F4E-4B7D-9C6E-8A3F5D1C6B9E">
+
+        <Package
+            InstallerVersion="200"
+            Compressed="yes"
+            InstallScope="perMachine"
+            Platform="x64" />
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of kolo is already installed." />
+
+        <MediaTemplate EmbedCab="yes" />
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="APPLICATIONFOLDER" Name="kolo">
+                    <Component Id="KoloExe" Guid="3D5C8B2A-6F1E-4C7D-9A3E-8B5F2D1C4E7A">
+                        <File
+                            Id="kolo.exe"
+                            Name="kolo.exe"
+                            Source="$(var.CargoTargetDir)\$(var.CargoTargetTriple)\release\kolo.exe"
+                            KeyPath="yes" />
+                        <Environment
+                            Id="PATH"
+                            Name="PATH"
+                            Value="[APPLICATIONFOLDER]"
+                            Permanent="no"
+                            Part="last"
+                            Action="set"
+                            System="yes" />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id="Main" Title="kolo" Level="1">
+            <ComponentRef Id="KoloExe" />
+        </Feature>
+    </Product>
+</Wix>

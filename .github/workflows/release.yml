@@ -74,6 +74,18 @@ jobs:
           $hash = (Get-FileHash "kolo-${{ matrix.target }}.exe" -Algorithm SHA256).Hash.ToLower()
           "$hash  kolo-${{ matrix.target }}.exe" | Out-File -Encoding ASCII "kolo-${{ matrix.target }}.exe.sha256"
 
+      - name: Install WiX + cargo-wix + build MSI
+        if: matrix.archive == 'zip'
+        run: |
+          choco install wixtoolset -y --version=3.14.1
+          cargo install cargo-wix --version 0.3.9
+          $env:CARGO_TARGET_DIR = "target"
+          $env:CARGO_BUILD_TARGET = "${{ matrix.target }}"
+          cargo wix --no-build -o "kolo-${{ matrix.target }}.msi"
+          $hash = (Get-FileHash "kolo-${{ matrix.target }}.msi" -Algorithm SHA256).Hash.ToLower()
+          "$hash  kolo-${{ matrix.target }}.msi" | Out-File -Encoding ASCII "kolo-${{ matrix.target }}.msi.sha256"
+        shell: pwsh
+
       - uses: actions/upload-artifact@v4
         with:
           name: kolo-${{ matrix.target }}
@@ -82,6 +94,8 @@ jobs:
             kolo-${{ matrix.target }}.${{ matrix.archive }}.sha256
             kolo-${{ matrix.target }}.exe
             kolo-${{ matrix.target }}.exe.sha256
+            kolo-${{ matrix.target }}.msi
+            kolo-${{ matrix.target }}.msi.sha256
 
   release:
     needs: build
