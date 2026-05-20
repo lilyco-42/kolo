@@ -61,7 +61,7 @@ jobs:
           cd ../../..
           sha256sum kolo-${{ matrix.target }}.tar.gz > kolo-${{ matrix.target }}.tar.gz.sha256
 
-      - name: Package (zip)
+      - name: Package (zip + exe)
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
@@ -70,6 +70,9 @@ jobs:
           Compress-Archive -Path $bin -DestinationPath $archive
           $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
           "$hash  $archive" | Out-File -Encoding ASCII "$archive.sha256"
+          Copy-Item $bin "kolo-${{ matrix.target }}.exe"
+          $hash = (Get-FileHash "kolo-${{ matrix.target }}.exe" -Algorithm SHA256).Hash.ToLower()
+          "$hash  kolo-${{ matrix.target }}.exe" | Out-File -Encoding ASCII "kolo-${{ matrix.target }}.exe.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -77,6 +80,8 @@ jobs:
           path: |
             kolo-${{ matrix.target }}.${{ matrix.archive }}
             kolo-${{ matrix.target }}.${{ matrix.archive }}.sha256
+            kolo-${{ matrix.target }}.exe
+            kolo-${{ matrix.target }}.exe.sha256
 
   release:
     needs: build
@@ -90,11 +95,11 @@ jobs:
           merge-multiple: true
 
       - name: Display artifacts
-        run: ls -la artifacts
+        run: ls -laR artifacts
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
+          files: artifacts/**/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
