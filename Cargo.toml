@@ -1,6 +1,6 @@
 [package]
 name = "kolo"
-version = "0.1.0"
+version = "0.1.6"
 edition = "2024"
 description = "Zed 配置编辑器 — a GUI config editor"
 repository = "https://github.com/lilyco-42/kolo"
